@@ -8,8 +8,9 @@ from operator import add
 
 def hit_port(server_port, client_port):
     server_socket = socket.socket()
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(("0.0.0.0", server_port))
-    print ("Hitting port " + str(client_port))
+    # print ("Hitting port " + str(client_port))
     server_socket.connect((client, client_port))
     server_socket.close()
 
@@ -147,6 +148,7 @@ while True:
     if idx == max_index - 1:
         idx = -1  # Assert (idx + 2) % max_index is next index
         wait_socket = socket.socket()
+        wait_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         wait_socket.bind(("0.0.0.0", 65535))
         wait_socket.listen(1)
         while True:

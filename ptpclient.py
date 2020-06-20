@@ -7,6 +7,7 @@ from operator import add
 
 def hit_port(client_port, server_port):
     client_socket = socket.socket()
+    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.bind(("0.0.0.0", client_port))
     print ("Hitting port " + str(server_port))
     client_socket.connect((server_ip, server_port))
