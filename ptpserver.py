@@ -27,7 +27,7 @@ Each socket connection (of which there are several) is represented like this:
 
 Socket Server-Side (localhost, server_port) => Socket Client-Side (client_IP, client_port)
 
-For each socket connection, the server hits a listening ${client_port} on specified ${client_IP} with it's own socket running on ${server_port} sending a bit-sequence ${bits} characters long. The bit-sequence is inferred client-side from the value of ${client_port} hit, and the position of the bit_sequence in bit stream data is inferred from the value of ${server_port}.
+For each socket connection, the server hits a listening ${client_port} on specified ${client_IP} with it's own socket running on ${server_port} sending a bit-sequence ${bits} characters long. The bit-sequence is inferred client-side from the value of ${client_port} hit, and the position of the bit-sequence in bit stream data is inferred from the value of ${server_port}.
 
 Values of server_port are selected using the legend, with ${server_offset}+1 mapped to first item and so on:
 index 1, index 2, index 3, ..., index ${max_index}, binary(0), binary(2^${bits}-1), EOF-0, EOF-1, ..., EOF-15
