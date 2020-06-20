@@ -4,7 +4,6 @@ import socket
 import argparse
 from sys import stdin
 from operator import add
-from math import ceil
 
 
 def hit_port(server_port, client_port):
@@ -83,7 +82,7 @@ ap.add_argument(
 )
 args = vars(ap.parse_args())
 
-client = ["client"]
+client = args["client"]
 input_stream = args["input"]
 
 if args["bits"] < 4:
@@ -152,7 +151,7 @@ while True:
         wait_socket.listen(1)
         while True:
             recv_socket, (recv_ip, recv_port) = wait_socket.accept()
-            if (recv_port == 65535) and (recv_ip == client):
+            if recv_ip == client:
                 break
 
 # Handle EOF-0 when no rstrip was needed
