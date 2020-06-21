@@ -61,7 +61,7 @@ _Terminal 2 (acting as server and serves a file  to client)_
 > ./ptpclient.py | ./ptptranslate.py
 
 **Server-side**
-> python2 ptpserver.py -f /path/to/file -c <client IP>  
+> python2 ptpserver.py -f /path/to/file -c client_ip  
 
 or  
-> cat /path/to/file | ./ptpserver.py -c <client IP>
+> cat /path/to/file | ./ptpserver.py -c client_ip
