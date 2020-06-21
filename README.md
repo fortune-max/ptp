@@ -5,7 +5,7 @@ Overview
 ===
 This utility sends files from server device (your machine) to a specified client device on which an instance of ptpclient is running.
 
-Useful when you wish to communicate with another device which you can hit it's ports but cannot write data to same port and/or vice versa.  
+Useful when you wish to communicate with another device which you can hit it's ports but cannot write data to same port and/or vice versa (this is the case when you're using mobile data and have no more balance, can hit endpoints but can't transmit data across these ports but this works around that).  
 
 Could also double for making sure your communication with client device is indecipherable/uninterceptable.
 
