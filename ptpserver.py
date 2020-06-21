@@ -2,15 +2,15 @@
 
 import socket
 import argparse
-from sys import stdin
+from sys import stdin, stderr
 from operator import add
 
 
 def hit_port(server_port, client_port):
     server_socket = socket.socket()
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_socket.bind(("0.0.0.0", server_port))
-    # print ("Hitting port " + str(client_port))
+    server_socket.bind((server_ip, server_port))
+    # print >>stderr, "Hitting port " + str(client_port)
     server_socket.connect((client, client_port))
     server_socket.close()
 
@@ -72,7 +72,10 @@ ap.add_argument(
     help="Bit space assigned to each port. Default 8 bits",
 )
 ap.add_argument(
-    "-i", "--input", default="-", type=str, help="Input file to serve. Default stdin"
+    "-f", "--file", default="-", type=str, help="Input file to serve. Default stdin"
+)
+ap.add_argument(
+    "-i", "--ip", default="0.0.0.0", type=str, help="IP address of this machine. Default 0.0.0.0"
 )
 ap.add_argument(
     "-c",
@@ -84,28 +87,29 @@ ap.add_argument(
 args = vars(ap.parse_args())
 
 client = args["client"]
-input_stream = args["input"]
+input_stream = args["file"]
+server_ip = args["ip"]
 
 if args["bits"] < 4:
-    print "Minimum bits is 4, using ", 4
+    print >>stderr, "Minimum bits is 4, using ", 4
 elif args["bits"] > 16:
-    print "Maximum bits exceeded, using ", 16
+    print >>stderr, "Maximum bits exceeded, using ", 16
 bits = max(min(args["bits"], 16), 4)
 
 if args["client_offset"] > 65534 - 2 ** bits + 2:
-    print "Client Offset value exceeded, using ", 65534 - 2 ** bits + 2
+    print >>stderr, "Client Offset value exceeded, using ", 65534 - 2 ** bits + 2
 client_offset = min(args["client_offset"], 65534 - 2 ** bits + 2)
 
 if args["max_index"] > 2 ** bits - 8:
-    print "Max index value exceeded, using ", 2 ** bits - 8
+    print >>stderr, "Max index value exceeded, using ", 2 ** bits - 8
 elif args["max_index"] % 8:
-    print "Max index must be divisible by 8, using ", args["max_index"] / 8 * 8
+    print >>stderr, "Max index must be divisible by 8, using ", args["max_index"] / 8 * 8
 elif args["max_index"] == 0:
-    print "Invalid Max index, using minimum value 8"
+    print >>stderr, "Invalid Max index, using minimum value 8"
 max_index = max(min(args["max_index"] / 8 * 8, 2 ** bits - 8), 8)
 
 if args["server_offset"] > 65535 - 19 - max_index:
-    print "Server Offset value exceeded, using ", 65535 - 19 - max_index
+    print >>stderr, "Server Offset value exceeded, using ", 65535 - 19 - max_index
 server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 
 if input_stream == "-":
@@ -149,7 +153,7 @@ while True:
         idx = -1  # Assert (idx + 2) % max_index is next index
         wait_socket = socket.socket()
         wait_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        wait_socket.bind(("0.0.0.0", 65535))
+        wait_socket.bind((server_ip, 65535))
         wait_socket.listen(1)
         while True:
             recv_socket, (recv_ip, recv_port) = wait_socket.accept()

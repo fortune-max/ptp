@@ -1,5 +1,8 @@
+#!/usr/bin/env python2
+
 import argparse
-from sys import stdout
+from sys import stdout, stdin
+from operator import add
 
 ap = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter, description=" ", epilog=" "
@@ -9,12 +12,11 @@ args = vars(ap.parse_args())
 input_stream = args["input"]
 
 if input_stream == "-":
-    bytes = stdin
+    raw_file = stdin
 else:
-    bytes = open(input_stream, "rb")
+    raw_file = open(input_stream, "rb")
 
-while True:
-    byte = bytes.read(9).strip()
-    if not byte:
-        break
+bits = reduce(add, raw_file.read().split())
+for idx in range(len(bits)/8):
+    byte = bits[idx*8: (idx+1)*8]
     stdout.write(chr(int(byte, 2)))
