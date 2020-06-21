@@ -28,7 +28,7 @@ def handle_ports(client_port, server_port):
             bit_seq = '1' * bits
             index = client_port - client_offset - 1
         else:
-            bit_seq = "-%d" % (server_port - 3)
+            bit_seq = "-%d" % (server_port - 3) # -X in EOF-0, etc.
             index = client_port - client_offset - 1
     else:
         # Handle server port as index and client as bit-sequence
@@ -73,15 +73,16 @@ server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 server_ip = None
 port_array = []
 bit_buffer = [''] * max_index
-eof = False
+eof_state, eof_index, eof_offset = False, -1, -1
 
 for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
     sock = socket.socket()
+    # print >>stderr, "listening on", port
     sock.bind((client_ip, port))
     sock.listen(1)
     port_array.append(sock)
 
-while not eof:
+while not eof_state:
     count = 0
     while count < max_index:
         readable, _, _ = select.select(port_array, [], [])
@@ -93,14 +94,14 @@ while not eof:
             index, bit_seq = handle_ports(client_port, server_port)
             if bit_seq.startswith('-'):
                 # Handle EOF
-                # bit_buffer[index-1] = bit_buffer[index-1][:int(bit_seq)]
-                eof = True
+                eof_state, eof_index  = True, index
+                eof_offset = None if bit_seq == '-0' else int(bit_seq)
                 max_index = index + 1
             else:
                 bit_buffer[index] = bit_seq
-        if eof:
-            break
+        if eof_state:
+            bit_buffer[eof_index-1] = bit_buffer[eof_index-1][:eof_offset]
     print reduce(add, bit_buffer)
-    if not eof:
+    if not eof_state:
         bit_buffer = [''] * max_index
         hit_port(0, 65535)

@@ -119,6 +119,7 @@ else:
 
 chunksize = max_index / 8 * bits
 eof_offset = -1
+idx = 0
 
 while True:
     chunks = bytes.read(chunksize)
@@ -126,7 +127,7 @@ while True:
         break
     print ("sending=> '" + chunks + "'")
     bit_seq = reduce(add, map(lambda x: bin(ord(x))[2:].zfill(8), chunks))
-    for idx in range(min(max_index, len(bit_seq) / bits)):
+    for idx in range(min(max_index, len(bit_seq) / bits + 1)):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         # Handle all 1's or 0's
         if to_send == "0" * bits:
@@ -137,15 +138,28 @@ while True:
             server_port = server_offset + max_index + 2
         # Handle all other bit-sequences and EOF
         else:
-            client_port = client_offset + int(to_send, 2)
-            server_port = server_offset + idx + 1
             if len(to_send) != bits:
                 # Handle EOF case
-                eof_offset = bits - len(to_send) + 1
+                eof_offset = bits - len(to_send) + 1 #eof_offset = 2, EOF-1
                 client_port = client_offset + idx + 2
-                server_port = server_offset + max_index + eof_offset + 3
+                server_port = server_offset + max_index + eof_offset + 2
                 print "Sending EOF-%d" % (eof_offset - 1)
                 hit_port(server_port, client_port)
+                # ljust then do procedure with bit-seq
+                to_send = to_send.ljust(bits, '0')
+                client_port = client_offset + idx + 1
+                if to_send == "0" * bits:
+                    client_port = client_offset + idx + 1
+                    server_port = server_offset + max_index + 1
+                elif to_send == "1" * bits:
+                    client_port = client_offset + idx + 1
+                    server_port = server_offset + max_index + 2
+                else:
+                    client_port = client_offset + int(to_send, 2)
+                    server_port = server_offset + idx + 1
+            else:
+                client_port = client_offset + int(to_send, 2)
+                server_port = server_offset + idx + 1
 
         hit_port(server_port, client_port)
     # Wait for client ACK if not finished
