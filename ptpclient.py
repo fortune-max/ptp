@@ -12,7 +12,7 @@ def hit_port(client_port, server_port):
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if client_port:
         client_socket.bind((client_ip, client_port))
-    print >> stderr, "Hitting port " + str(server_port)
+    # print >> stderr, "Hitting port " + str(server_port)
     client_socket.connect((server_ip, server_port))
     client_socket.close()
 
@@ -78,6 +78,7 @@ eof_state, eof_index, eof_offset = False, -1, -1
 for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
     sock = socket.socket()
     # print >>stderr, "listening on", port
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((client_ip, port))
     sock.listen(1)
     port_array.append(sock)

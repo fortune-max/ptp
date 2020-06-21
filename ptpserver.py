@@ -86,12 +86,17 @@ else:
 chunksize = max_index / 8 * bits
 eof_offset = -1
 idx = 0
+# Set up server poll socket
+wait_socket = socket.socket()
+wait_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+wait_socket.bind((server_ip, 65535))
+wait_socket.listen(1)
 
 while True:
     chunks = bytes.read(chunksize)
     if not chunks:
         break
-    print ("sending=> '" + chunks + "'")
+    # print ("sending=> '" + chunks + "'")
     bit_seq = reduce(add, map(lambda x: bin(ord(x))[2:].zfill(8), chunks))
     for idx in range(min(max_index, len(bit_seq) / bits + 1)):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
@@ -131,10 +136,6 @@ while True:
     # Wait for client ACK if not finished
     if idx == max_index - 1:
         idx = -1  # Assert (idx + 2) % max_index is next index
-        wait_socket = socket.socket()
-        wait_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        wait_socket.bind((server_ip, 65535))
-        wait_socket.listen(1)
         while True:
             recv_socket, (recv_ip, recv_port) = wait_socket.accept()
             if recv_ip == client:
