@@ -43,11 +43,25 @@ Each time the server sends the next set of ${max index} bit-sequences, it waits 
 
 Usage
 ===
-**Server-side**
-> python2 ptpserver.py -i /path/to/file -c <client IP>  
-  
-or  
-> cat /path/to/file | python2 ptpserver.py -c <client IP>
+####Important
+Ensure to run client before server.  
+Parameters common to both client and server must be the same for both when run (bits, offsets, max index).
+
+####Running on same machine (testing, etc)  
+
+_Terminal 1 (acting as client and run first)_
+> ./ptpclient.py | ./ptptranslate.py
+
+_Terminal 2 (acting as server and serves a file  to client)_  
+> ./ptpserver.py -f testfiles/hightail.conf  
+
+####Different Server & Client machine  
 
 **Client-side**
-> python2 ptpclient.py | tee outfile
+> ./ptpclient.py | ./ptptranslate.py
+
+**Server-side**
+> python2 ptpserver.py -f /path/to/file -c <client IP>  
+
+or  
+> cat /path/to/file | ./ptpserver.py -c <client IP>
