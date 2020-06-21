@@ -41,8 +41,8 @@ ap = argparse.ArgumentParser()
 
 ap.add_argument("-O","--server_offset",default=34000,type=int,help="Number of ports to step over before mapping offset+1, ..., to indexes. Default 34000 (in case running both server and client on same machine limit clashes)",)
 ap.add_argument("-o","--client_offset",default=1024,type=int,help="Number of ports to step over before mapping offset+1, ..., to bit sequences. Default 1024 (running non-root)",)
-ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
-ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
+ap.add_argument("-m","--max_index",default=120,type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
+ap.add_argument("-b","--bits",default=7,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 args = vars(ap.parse_args())
 
