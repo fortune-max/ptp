@@ -19,6 +19,6 @@ else:
 bit_array = raw_file.read().split()
 if bit_array:
     bits = reduce(add, bit_array)
-    for idx in range(len(bits)/8):
-        byte = bits[idx*8: (idx+1)*8]
+    for idx in range(len(bits) / 8):
+        byte = bits[idx * 8 : (idx + 1) * 8]
         stdout.write(chr(int(byte, 2)))
