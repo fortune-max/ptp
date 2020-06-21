@@ -16,7 +16,9 @@ if input_stream == "-":
 else:
     raw_file = open(input_stream, "rb")
 
-bits = reduce(add, raw_file.read().split())
-for idx in range(len(bits)/8):
-    byte = bits[idx*8: (idx+1)*8]
-    stdout.write(chr(int(byte, 2)))
+bit_array = raw_file.read().split()
+if bit_array:
+    bits = reduce(add, bit_array)
+    for idx in range(len(bits)/8):
+        byte = bits[idx*8: (idx+1)*8]
+        stdout.write(chr(int(byte, 2)))
