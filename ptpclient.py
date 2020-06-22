@@ -69,26 +69,36 @@ if args["server_offset"] > 65535 - 19 - max_index:
     print >> stderr, "Server Offset value exceeded, using ", 65535 - 19 - max_index
 server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 
+READ_ONLY = select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR
+READ_WRITE = READ_ONLY | select.POLLOUT
+poller = select.poll()
 
 server_ip = None
-port_array = []
+# port_array = []
 bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
+fd_to_socket = {}
 
 for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
     sock = socket.socket()
     # print >>stderr, "listening on", port
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # print port
     sock.bind((client_ip, port))
     # max value in /proc/sys/net/core/somaxconn, increase if higher than 128
     sock.listen(128)
-    port_array.append(sock)
+    poller.register(sock, READ_ONLY)
+    fd_to_socket[sock.fileno()] = sock
+    # port_array.append(sock)
 
 while not eof_state:
     count = 0
     while count < max_index:
-        readable, _, _ = select.select(port_array, [], [])
-        for ready_server in readable:
+        # readable, _, _ = select.select(port_array, [], [])
+        readable = poller.poll()
+        #for ready_server in readable:
+        for fd, flags in readable:
+            ready_server = fd_to_socket[fd]
             count += 1
             client_port = ready_server.getsockname()[1]
             recv_socket, (server_ip, server_port) = ready_server.accept()
