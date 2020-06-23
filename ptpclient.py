@@ -1,10 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import socket
 import argparse
 import select
 from sys import stderr
 from operator import add
+from functools import reduce
 
 
 def hit_port(client_port, server_port):
@@ -12,7 +13,7 @@ def hit_port(client_port, server_port):
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if client_port:
         client_socket.bind((client_ip, client_port))
-    # print >> stderr, "Hitting port " + str(server_port)
+    # print ("Hitting port " + str(server_port), file=stderr)
     client_socket.connect((server_ip, server_port))
     client_socket.close()
 
@@ -44,61 +45,69 @@ ap.add_argument("-o","--client_offset",default=1024,type=int,help="Number of por
 ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
+ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
 args = vars(ap.parse_args())
 
 client_ip = args["ip"]
+windows_mode = args["windows_mode"]
+
 if args["bits"] < 4:
-    print >> stderr, "Minimum bits is 4, using ", 4
+    print ("Minimum bits is 4, using ", 4, file=stderr)
 elif args["bits"] > 16:
-    print >> stderr, "Maximum bits exceeded, using ", 16
+    print ("Maximum bits exceeded, using ", 16, file=stderr)
 bits = max(min(args["bits"], 16), 4)
 
 if args["client_offset"] > 65534 - 2 ** bits + 2:
-    print >> stderr, "Client Offset value exceeded, using ", 65534 - 2 ** bits + 2
+    print ("Client Offset value exceeded, using ", 65534 - 2 ** bits + 2, file=stderr)
 client_offset = min(args["client_offset"], 65534 - 2 ** bits + 2)
 
 if args["max_index"] > 2 ** bits - 8:
-    print >> stderr, "Max index value exceeded, using ", 2 ** bits - 8
+    print ("Max index value exceeded, using ", 2 ** bits - 8, file=stderr)
 elif args["max_index"] % 8:
-    print >> stderr, "Max index must be divisible by 8, using ", args["max_index"] / 8 * 8
+    print ("Max index must be divisible by 8, using ", int(args["max_index"] / 8) * 8, file=stderr)
 elif args["max_index"] == 0:
-    print >> stderr, "Invalid Max index, using minimum value 8"
-max_index = max(min(args["max_index"] / 8 * 8, 2 ** bits - 8), 8)
+    print ("Invalid Max index, using minimum value 8", file=stderr)
+max_index = max(min(int(args["max_index"] / 8) * 8, 2 ** bits - 8), 8)
 
 if args["server_offset"] > 65535 - 19 - max_index:
-    print >> stderr, "Server Offset value exceeded, using ", 65535 - 19 - max_index
+    print ("Server Offset value exceeded, using ", 65535 - 19 - max_index, file=stderr)
 server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 
-READ_ONLY = select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR
-READ_WRITE = READ_ONLY | select.POLLOUT
-poller = select.poll()
-
 server_ip = None
-# port_array = []
 bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
-fd_to_socket = {}
+
+if windows_mode:
+    port_array = []
+else:
+    poller = select.poll()
+    fd_to_socket = {}
+    READ_ONLY = select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR
 
 for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
     sock = socket.socket()
-    # print >>stderr, "listening on", port
+    # print ("listening on", port, file=stderr)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    # print port
     sock.bind((client_ip, port))
     # max value in /proc/sys/net/core/somaxconn, increase if higher than 128
     sock.listen(128)
-    poller.register(sock, READ_ONLY)
-    fd_to_socket[sock.fileno()] = sock
-    # port_array.append(sock)
+    if not windows_mode:
+        poller.register(sock, READ_ONLY)
+        fd_to_socket[sock.fileno()] = sock
+    else:
+        port_array.append(sock)
 
 while not eof_state:
     count = 0
     while count < max_index:
-        # readable, _, _ = select.select(port_array, [], [])
-        readable = poller.poll()
-        #for ready_server in readable:
-        for fd, flags in readable:
-            ready_server = fd_to_socket[fd]
+        if windows_mode:
+            readable, _, _ = select.select(port_array, [], [])
+        else:
+            readable = poller.poll()
+        for ready_server in readable:
+            if not windows_mode:
+                fd, flag = ready_server
+                ready_server = fd_to_socket[fd]
             count += 1
             client_port = ready_server.getsockname()[1]
             recv_socket, (server_ip, server_port) = ready_server.accept()
@@ -113,7 +122,7 @@ while not eof_state:
                 bit_buffer[index] = bit_seq
         if eof_state:
             bit_buffer[eof_index - 1] = bit_buffer[eof_index - 1][:eof_offset]
-    print reduce(add, bit_buffer)
+    print (reduce(add, bit_buffer))
     if not eof_state:
         bit_buffer = [""] * max_index
         hit_port(0, 65535)

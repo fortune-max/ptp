@@ -1,16 +1,18 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import socket
 import argparse
 from sys import stdin, stderr
+from math import ceil
 from operator import add
+from functools import reduce
 
 
 def hit_port(server_port, client_port):
     server_socket = socket.socket()
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((server_ip, server_port))
-    # print >>stderr, "Hitting port " + str(client_port)
+    # print ("Hitting port ", server_port, client_port, file=stderr)
     server_socket.connect((client, client_port))
     server_socket.close()
 
@@ -57,25 +59,25 @@ input_stream = args["file"]
 server_ip = args["ip"]
 
 if args["bits"] < 4:
-    print >> stderr, "Minimum bits is 4, using ", 4
+    print ("Minimum bits is 4, using ", 4, file=stderr)
 elif args["bits"] > 16:
-    print >> stderr, "Maximum bits exceeded, using ", 16
+    print ("Maximum bits exceeded, using ", 16, file=stderr)
 bits = max(min(args["bits"], 16), 4)
 
 if args["client_offset"] > 65534 - 2 ** bits + 2:
-    print >> stderr, "Client Offset value exceeded, using ", 65534 - 2 ** bits + 2
+    print ("Client Offset value exceeded, using ", 65534 - 2 ** bits + 2, file=stderr)
 client_offset = min(args["client_offset"], 65534 - 2 ** bits + 2)
 
 if args["max_index"] > 2 ** bits - 8:
-    print >> stderr, "Max index value exceeded, using ", 2 ** bits - 8
+    print ("Max index value exceeded, using ", 2 ** bits - 8, file=stderr)
 elif args["max_index"] % 8:
-    print >> stderr, "Max index must be divisible by 8, using ", args["max_index"] / 8 * 8
+    print ("Max index must be divisible by 8, using ", int(args["max_index"] / 8) * 8, file=stderr)
 elif args["max_index"] == 0:
-    print >> stderr, "Invalid Max index, using minimum value 8"
-max_index = max(min(args["max_index"] / 8 * 8, 2 ** bits - 8), 8)
+    print ("Invalid Max index, using minimum value 8", file=stderr)
+max_index = max(min(int(args["max_index"] / 8) * 8, 2 ** bits - 8), 8)
 
 if args["server_offset"] > 65535 - 19 - max_index:
-    print >> stderr, "Server Offset value exceeded, using ", 65535 - 19 - max_index
+    print ("Server Offset value exceeded, using ", 65535 - 19 - max_index, file=stderr)
 server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 
 if input_stream == "-":
@@ -83,10 +85,10 @@ if input_stream == "-":
 else:
     bytes = open(input_stream, "rb")
 
-chunksize = max_index / 8 * bits
+chunksize = int(max_index / 8) * bits
 eof_offset = -1
 idx = 0
-# Set up server poll socket
+# Set up server-poll socket
 wait_socket = socket.socket()
 wait_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 wait_socket.bind((server_ip, 65535))
@@ -97,16 +99,18 @@ while True:
     if not chunks:
         break
     # print ("sending=> '" + chunks + "'")
-    bit_seq = reduce(add, map(lambda x: bin(ord(x))[2:].zfill(8), chunks))
-    for idx in range(min(max_index, len(bit_seq) / bits + 1)):
+    bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
+    for idx in range(min(max_index, int(ceil(len(bit_seq) / bits)))):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         # Handle all 1's or 0's
         if to_send == "0" * bits:
             client_port = client_offset + idx + 1
             server_port = server_offset + max_index + 1
+            hit_port(server_port, client_port)
         elif to_send == "1" * bits:
             client_port = client_offset + idx + 1
             server_port = server_offset + max_index + 2
+            hit_port(server_port, client_port)
         # Handle all other bit-sequences and EOF
         else:
             if len(to_send) != bits:
@@ -114,7 +118,7 @@ while True:
                 eof_offset = bits - len(to_send) + 1  # eof_offset = 2, EOF-1
                 client_port = client_offset + idx + 2
                 server_port = server_offset + max_index + eof_offset + 2
-                print "Sending EOF-%d" % (eof_offset - 1)
+                print ("Sending EOF-%d" % (eof_offset - 1))
                 hit_port(server_port, client_port)
                 # ljust then do procedure with bit-seq
                 to_send = to_send.ljust(bits, "0")
@@ -132,7 +136,7 @@ while True:
                 client_port = client_offset + int(to_send, 2)
                 server_port = server_offset + idx + 1
 
-        hit_port(server_port, client_port)
+            hit_port(server_port, client_port)
     # Wait for client ACK if not finished
     if idx == max_index - 1:
         idx = -1  # Assert (idx + 2) % max_index is next index
@@ -143,9 +147,9 @@ while True:
 
 # Handle EOF-0 when no rstrip was needed
 if eof_offset == -1:
-    print "Sending EOF-0"
+    print ("Sending EOF-0")
     client_port = client_offset + (idx + 2) % max_index
     server_port = server_offset + max_index + 3
     hit_port(server_port, client_port)
 
-print "Done!"
+print ("Done!")
