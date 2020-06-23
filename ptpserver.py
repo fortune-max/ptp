@@ -16,6 +16,28 @@ def hit_port(server_port, client_port):
     server_socket.connect((client, client_port))
     server_socket.close()
 
+def resolve_ports(bit_seq, server_is_idx):
+    server_port = server_offset + 1 + [0, idx][server_is_idx]
+    client_port = client_offset + 1 + [idx, 0][server_is_idx]
+
+    if len(bit_seq) == bits:
+        if len(set(bit_seq)) == 1:
+            if server_is_idx:
+                return resolve_ports(bit_seq, False)
+            server_port += max_index + int(bit_seq[0])
+        else:
+            client_port += int(to_send, 2) - 1
+    else:
+        if server_is_idx:
+            return resolve_ports(bit_seq, False)
+        global eof_offset
+        eof_offset = bits - len(bit_seq) + 1  # eof_offset = 2, EOF-1
+        resolve_ports(bit_seq.ljust(bits, "0"), True)
+        client_port += 1
+        server_port += max_index + eof_offset + 1
+        print ("Sending EOF-%d" % (eof_offset - 1))
+    hit_port(server_port, client_port)
+
 
 ap = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -102,41 +124,8 @@ while True:
     bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
     for idx in range(min(max_index, int(ceil(len(bit_seq) / bits)))):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
-        # Handle all 1's or 0's
-        if to_send == "0" * bits:
-            client_port = client_offset + idx + 1
-            server_port = server_offset + max_index + 1
-            hit_port(server_port, client_port)
-        elif to_send == "1" * bits:
-            client_port = client_offset + idx + 1
-            server_port = server_offset + max_index + 2
-            hit_port(server_port, client_port)
-        # Handle all other bit-sequences and EOF
-        else:
-            if len(to_send) != bits:
-                # Handle EOF case
-                eof_offset = bits - len(to_send) + 1  # eof_offset = 2, EOF-1
-                client_port = client_offset + idx + 2
-                server_port = server_offset + max_index + eof_offset + 2
-                print ("Sending EOF-%d" % (eof_offset - 1))
-                hit_port(server_port, client_port)
-                # ljust then do procedure with bit-seq
-                to_send = to_send.ljust(bits, "0")
-                client_port = client_offset + idx + 1
-                if to_send == "0" * bits:
-                    client_port = client_offset + idx + 1
-                    server_port = server_offset + max_index + 1
-                elif to_send == "1" * bits:
-                    client_port = client_offset + idx + 1
-                    server_port = server_offset + max_index + 2
-                else:
-                    client_port = client_offset + int(to_send, 2)
-                    server_port = server_offset + idx + 1
-            else:
-                client_port = client_offset + int(to_send, 2)
-                server_port = server_offset + idx + 1
+        resolve_ports(to_send, True)
 
-            hit_port(server_port, client_port)
     # Wait for client ACK if not finished
     if idx == max_index - 1:
         idx = -1  # Assert (idx + 2) % max_index is next index
