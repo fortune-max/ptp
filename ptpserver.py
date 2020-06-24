@@ -2,41 +2,63 @@
 
 import socket
 import argparse
+import logging
+import concurrent.futures
 from sys import stdin, stderr
 from math import ceil
 from operator import add
 from functools import reduce
+from time import sleep
+
+
+def safe_connect(server_socket, server_port, client_port):
+    while True:
+        try:
+            server_socket.connect((client, client_port))
+            server_socket.close()
+            return True
+        except:
+            sleep(0.1)
 
 
 def hit_port(server_port, client_port):
     server_socket = socket.socket()
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((server_ip, server_port))
+    # server_socket.connect((client, client_port))
+    safe_connect(server_socket, server_port, client_port)
     # print ("Hitting port ", server_port, client_port, file=stderr)
-    server_socket.connect((client, client_port))
-    server_socket.close()
+    # server_socket.close()
 
-def resolve_ports(bit_seq, server_is_idx):
+def resolve_ports(bit_seq, server_is_idx, idx):
     server_port = server_offset + 1 + [0, idx][server_is_idx]
     client_port = client_offset + 1 + [idx, 0][server_is_idx]
 
     if len(bit_seq) == bits:
         if len(set(bit_seq)) == 1:
             if server_is_idx:
-                return resolve_ports(bit_seq, False)
+                return resolve_ports(bit_seq, False, idx)
             server_port += max_index + int(bit_seq[0])
         else:
-            client_port += int(to_send, 2) - 1
+            client_port += int(bit_seq, 2) - 1
     else:
         if server_is_idx:
-            return resolve_ports(bit_seq, False)
+            return resolve_ports(bit_seq, False, idx)
         global eof_offset
         eof_offset = bits - len(bit_seq) + 1  # eof_offset = 2, EOF-1
-        resolve_ports(bit_seq.ljust(bits, "0"), True)
+        resolve_ports(bit_seq.ljust(bits, "0"), True, idx)
         client_port += 1
         server_port += max_index + eof_offset + 1
         print ("Sending EOF-%d" % (eof_offset - 1))
     hit_port(server_port, client_port)
+
+
+def iter_bits(params):
+    (bit_seq, start, stop, step) = params
+    for idx in range(start, stop, step):
+        to_send = bit_seq[idx * bits : (idx + 1) * bits]
+        resolve_ports(to_send, True, idx)
+        
 
 
 ap = argparse.ArgumentParser(
@@ -74,11 +96,13 @@ ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to eac
 ap.add_argument("-f", "--file", default="-", type=str, help="Input file to serve. Default stdin")
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-c","--client",default="127.0.0.1",type=str,help="Client IP to serve file to. Default localhost",)
+ap.add_argument("-t","--threads",default=8,type=int,help="Number of threads to spawn to handle port hitting",)
 args = vars(ap.parse_args())
 
 client = args["client"]
 input_stream = args["file"]
 server_ip = args["ip"]
+threads = args["threads"]
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -120,14 +144,12 @@ while True:
     chunks = bytes.read(chunksize)
     if not chunks:
         break
-    # print ("sending=> '" + chunks + "'")
     bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
-    for idx in range(min(max_index, int(ceil(len(bit_seq) / bits)))):
-        to_send = bit_seq[idx * bits : (idx + 1) * bits]
-        resolve_ports(to_send, True)
-
+    segments = min(max_index, int(ceil(len(bit_seq) / bits)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(threads, segments)) as executor:
+        executor.map(iter_bits, ((bit_seq, i, segments, min(segments, threads)) for i in range(min(segments, threads))))
     # Wait for client ACK if not finished
-    if idx == max_index - 1:
+    if segments == max_index:
         idx = -1  # Assert (idx + 2) % max_index is next index
         while True:
             recv_socket, (recv_ip, recv_port) = wait_socket.accept()
