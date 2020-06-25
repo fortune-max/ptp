@@ -3,6 +3,7 @@
 import socket
 import argparse
 import select
+from time import time
 from sys import stderr
 from operator import add
 from functools import reduce
@@ -46,10 +47,14 @@ ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequ
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
+ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
+ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (slows performance)")
 args = vars(ap.parse_args())
 
 client_ip = args["ip"]
 windows_mode = args["windows_mode"]
+poll_port = args["poll_port"]
+verbose = args["verbose"]
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -76,6 +81,7 @@ server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 server_ip = None
 bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
+start_step = 0
 
 if windows_mode:
     port_array = []
@@ -99,6 +105,11 @@ for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
 
 while not eof_state:
     count = 0
+    if verbose:
+        step_duration = (time() - start_step)
+        kbytes = max_index * bits / 8000
+        print ("%.2fKb/s"%(kbytes/step_duration), file=stderr)
+        start_step = time()
     while count < max_index:
         if windows_mode:
             readable, _, _ = select.select(port_array, [], [])
@@ -125,4 +136,4 @@ while not eof_state:
     print (reduce(add, bit_buffer))
     if not eof_state:
         bit_buffer = [""] * max_index
-        hit_port(0, 65535)
+        hit_port(0, poll_port)
