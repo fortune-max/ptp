@@ -16,5 +16,5 @@ for q in $(seq 1 $2)
 do
     CLIENT_OFFSET=$((770+$(($((2**$1))-2))*$q))
     SERVER_OFFSET=$((33734+$(($((2**$1))+10))*$q))
-    time ./ptpserver.py -f x0$(($q-1)) -b $1 -m 99999 -p $((65520+$q)) -o $CLIENT_OFFSET -O $SERVER_OFFSET -c $4 &
+    time python3 ptpserver.py -f x0$(($q-1)) -b $1 -m 99999 -p $((65520+$q)) -o $CLIENT_OFFSET -O $SERVER_OFFSET -c $4 &
 done
