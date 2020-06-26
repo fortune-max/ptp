@@ -5,7 +5,7 @@
 ceil (){ CEIL_ANS=$(($(($1+$2-1))/$2)); }
 
 # Obtain file size to det how to break
-FILE_SIZE=`stat --printf="%s" $3`
+FILE_SIZE=`ls -l $3 | awk '{print $5}'
 
 # Break file into $PIECES
 ceil $FILE_SIZE $2
