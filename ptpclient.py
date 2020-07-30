@@ -172,4 +172,4 @@ while not eof_state:
 print(last_buffer)
 print ("Done!", file=stderr)
 if verbose:
-    print ("Max speed %.2fkB/s; Avg speed %.2fkB/s"% (max_speed, avg_speed), file=stderr)
+    print ("Max speed %.5fkB/s; Avg speed %.5fkB/s"% (max_speed, avg_speed), file=stderr)
