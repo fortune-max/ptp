@@ -41,6 +41,7 @@ ap.add_argument("-O","--server_offset",default=34000,type=int,help="Number of po
 ap.add_argument("-o","--client_offset",default=1024,type=int,help="Number of ports to step over before mapping offset+1, ..., to bit sequences. Default 1024 (running non-root)",)
 ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
+ap.add_argument("-t", "--timeout", default=2000,type=int,help="time to wait (ms) before writing off UDP missing packets and requesting again")
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
@@ -49,6 +50,7 @@ ap.add_argument("-V", "--Verbose", action="store_true", help="display helpful st
 args = vars(ap.parse_args())
 
 client_ip = args["ip"]
+timeout = args["timeout"]
 windows_mode = args["windows_mode"]
 poll_port = args["poll_port"]
 Verbose = args["Verbose"]
@@ -120,9 +122,11 @@ while not eof_state:
         while count < max_index and readable:
             # Recv data UDP
             if windows_mode:
-                readable, _, _ = select.select(port_array, [], [], 10)
+                wait = timeout/1000 if last_buffer else None
+                readable, _, _ = select.select(port_array, [], [], wait)
             else:
-                readable = poller.poll(10000)
+                wait = timeout if last_buffer else None
+                readable = poller.poll(wait)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server
