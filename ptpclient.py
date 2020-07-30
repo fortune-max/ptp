@@ -129,9 +129,9 @@ while not eof_state:
         while count < max_index and readable:
             # Recv data UDP
             if windows_mode:
-                readable, _, _ = select.select(port_array, [], [], 30)
+                readable, _, _ = select.select(port_array, [], [], 10)
             else:
-                readable = poller.poll(30000)
+                readable = poller.poll(10000)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server
