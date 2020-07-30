@@ -128,7 +128,7 @@ while True:
             bit_seq += "0" * EOF_offset
             bit_seq += str(EOF_offset).rjust(bits,"+")
             segments += 1
-    for idx in missing_indexes if missing_count else range(segments):
+    for idx in missing_indexes & set(range(segments)) if missing_count else range(segments):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         # Send Data UDP
         resolve_ports(to_send, True, idx)
