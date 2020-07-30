@@ -81,6 +81,7 @@ bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
 last_buffer = ""
 start_step = 0
+min_speed = 99999999999
 max_speed = avg_speed = avg_count = 0
 
 if windows_mode:
@@ -114,16 +115,6 @@ while not eof_state:
     bit_buffer = [""] * max_index
     missing_indexes = set(range(max_index))
     bit_buffer = [last_buffer] + bit_buffer
-    if verbose:
-        step_duration = (time() - start_step)
-        kbytes = max_index * bits / 8000
-        speed = kbytes/step_duration
-        max_speed = max(speed, max_speed)
-        avg_speed = (avg_speed * avg_count + speed) / (avg_count + 1)
-        avg_count += 1
-        if Verbose:
-            print ("%.2fkB/s"%speed, file=stderr)
-        start_step = time()
     while count < max_index:
         readable = True
         while count < max_index and readable:
@@ -169,7 +160,21 @@ while not eof_state:
             sock.close()
     last_buffer = bit_buffer.pop()
     print (reduce(add, bit_buffer))
+
+    if verbose:
+        step_duration = (time() - start_step)
+        kbytes = max_index * bits / 8000
+        speed = kbytes/step_duration
+        if start_step:
+            max_speed = max(speed, max_speed)
+            min_speed = min(speed, min_speed)
+            avg_speed = (avg_speed * avg_count + speed) / (avg_count + 1)
+            avg_count += 1
+            if Verbose:
+                print ("%.2fkB/s"%speed, file=stderr)
+        start_step = time()
+
 print(last_buffer)
 print ("Done!", file=stderr)
 if verbose:
-    print ("Max speed %.5fkB/s; Avg speed %.5fkB/s"% (max_speed, avg_speed), file=stderr)
+    print ("Max speed %.5fkB/s; Avg speed %.5fkB/s; Min speed %.5fkB/s"% (max_speed, avg_speed, min_speed), file=stderr)
