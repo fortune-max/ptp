@@ -155,7 +155,7 @@ while not eof_state:
         # Send missing count (zero-indexed)
         missing_count = len(missing_indexes)
         if Verbose:
-            print ("Received count missing=", missing_count)
+            print ("Received count missing=", missing_count, file=stderr)
         hit_port_tcp(0, server_offset + missing_count + 1)
         # wait for ACK of no missing
         recv_socket, (server_ip, recv_port) = wait_socket.accept()
