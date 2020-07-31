@@ -13,7 +13,7 @@ def hit_port_tcp(client_port, server_port):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.bind((client_ip, client_port))
-    # print ("Hitting port " + str(server_port), file=stderr)
+    print ("Hitting port " + str(server_port), file=stderr)
     client_socket.connect((server_ip, server_port))
     client_socket.close()
 
@@ -130,7 +130,7 @@ while not eof_state:
                 readable = poller.poll(wait)
             if not connected:
                 connected = True
-                print ("Connection Established", file=stderr)
+                print ("Connection Established, rcved", len(readable), file=stderr)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server
@@ -153,10 +153,12 @@ while not eof_state:
         recv_socket.close()
         # Send missing count (zero-indexed)
         missing_count = len(missing_indexes)
+        print ("missing count", missing_count, file=stderr)
         hit_port_tcp(0, server_offset + missing_count + 1)
         # wait for ACK of no missing
         recv_socket, (server_ip, recv_port) = wait_socket.accept()
         recv_socket.close()
+        print("missing idx", missing_indexes)
         # Send missing indexes (zero-indexed)
         for missing_index in missing_indexes:
             hit_port_tcp(0, server_offset + missing_index + 1)
