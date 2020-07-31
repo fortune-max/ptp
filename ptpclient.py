@@ -123,14 +123,14 @@ while not eof_state:
         while count < max_index and readable:
             # Recv data UDP
             if windows_mode:
-                wait = timeout/1000 if last_buffer else None
+                wait = timeout/1000 if connected else None
                 readable, _, _ = select.select(port_array, [], [], wait)
             else:
-                wait = timeout if last_buffer else None
+                wait = timeout if connected else None
                 readable = poller.poll(wait)
             if not connected:
                 connected = True
-                print ("Connection Established, rcved", len(readable), file=stderr)
+                print ("Connection Established", file=stderr)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server
