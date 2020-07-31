@@ -83,6 +83,7 @@ bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
 last_buffer = ""
 start_step = 0
+connected = False
 min_speed = 99999999999
 max_speed = avg_speed = avg_count = 0
 
@@ -127,6 +128,9 @@ while not eof_state:
             else:
                 wait = timeout if last_buffer else None
                 readable = poller.poll(wait)
+            if not connected:
+                connected = True
+                print ("Connection Established", file=stderr)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server

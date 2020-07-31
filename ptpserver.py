@@ -111,6 +111,7 @@ for port in range(server_offset + 1, server_offset + max_index + 1):
     else:
         port_array.append(sock)
 
+connected = False
 EOF = False
 missing_count = 0
 chunksize = int(max_index / 8) * bits
@@ -135,6 +136,9 @@ while True:
     #print ("Sent data UDP")
     # Notify client that data sent
     hit_port_tcp(0, poll_port)
+    if not connected:
+        connected = True
+        print ("Connection Established")
     #print ("Notified send finish")
     # Get count of missing indexes
     if windows_mode:
