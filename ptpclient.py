@@ -13,7 +13,7 @@ def hit_port_tcp(client_port, server_port):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     client_socket.bind((client_ip, client_port))
-    print ("Hitting port " + str(server_port), file=stderr)
+    # print ("Hitting port " + str(server_port), file=stderr)
     client_socket.connect((server_ip, server_port))
     client_socket.close()
 
@@ -106,6 +106,7 @@ for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # print ("listening on", port, file=stderr)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1048576)
     sock.bind((client_ip, port))
     if not windows_mode:
         poller.register(sock, READ_ONLY)
@@ -153,12 +154,12 @@ while not eof_state:
         recv_socket.close()
         # Send missing count (zero-indexed)
         missing_count = len(missing_indexes)
-        print ("missing count", missing_count, file=stderr)
+        if Verbose:
+            print ("Received count missing=", missing_count)
         hit_port_tcp(0, server_offset + missing_count + 1)
         # wait for ACK of no missing
         recv_socket, (server_ip, recv_port) = wait_socket.accept()
         recv_socket.close()
-        print("missing idx", missing_indexes)
         # Send missing indexes (zero-indexed)
         for missing_index in missing_indexes:
             hit_port_tcp(0, server_offset + missing_index + 1)
