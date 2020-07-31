@@ -140,7 +140,7 @@ while not eof_state:
                 client_port = ready_server.getsockname()[1]
                 recv_data, (server_ip, server_port) = ready_server.recvfrom(1)
                 index, bit_seq = handle_ports(client_port, server_port)
-                missing_indexes.remove(index-1)
+                missing_indexes -= {index-1}
                 if isinstance(bit_seq, int):
                     # Handle EOF
                     eof_state, eof_index = True, index
@@ -154,7 +154,7 @@ while not eof_state:
         recv_socket.close()
         # Send missing count (zero-indexed)
         missing_count = len(missing_indexes)
-        if Verbose:
+        if missing_count and Verbose:
             print ("Received count missing=", missing_count, file=stderr)
         hit_port_tcp(0, server_offset + missing_count + 1)
         # wait for ACK of no missing
