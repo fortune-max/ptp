@@ -5,6 +5,7 @@ import select
 import argparse
 from sys import stdin, stderr
 from math import ceil
+from time import time
 from operator import add
 from functools import reduce
 
@@ -55,6 +56,8 @@ ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Window
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-c","--client",default="127.0.0.1",type=str,help="Client IP to serve file to. Default localhost",)
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
+ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (summary)")
+ap.add_argument("-V", "--Verbose", action="store_true", help="display helpful stats, (explicit)")
 args = vars(ap.parse_args())
 
 client = args["client"]
@@ -62,6 +65,8 @@ input_stream = args["file"]
 server_ip = args["ip"]
 poll_port = args["poll_port"]
 windows_mode = args["windows_mode"]
+Verbose = args["Verbose"]
+verbose = args["verbose"] or Verbose
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -115,9 +120,25 @@ connected = False
 EOF = False
 missing_count = 0
 chunksize = int(max_index / 8) * bits
+start_step = 0
+min_speed = 99999999999
+max_speed = avg_speed = avg_count = 0
 
 while True:
     if not missing_count:
+        if verbose and not EOF:
+            step_duration = (time() - start_step)
+            kbytes = max_index * bits / 8000
+            speed = kbytes/step_duration
+            if start_step:
+                max_speed = max(speed, max_speed)
+                min_speed = min(speed, min_speed)
+                avg_speed = (avg_speed * avg_count + speed) / (avg_count + 1)
+                avg_count += 1
+                if Verbose:
+                    print ("%.2fkB/s"%speed, file=stderr)
+            start_step = time()
+
         chunks = bytes.read(chunksize)
         if not chunks and EOF:
             break
@@ -173,5 +194,6 @@ while True:
             recv_socket.close()
             missing_indexes.append(server_port - server_offset - 1)
     #print ("Received indexes", missing_indexes)
-
+if verbose:
+    print ("Max speed %.5fkB/s; Avg speed %.5fkB/s; Min speed %.5fkB/s"% (max_speed, avg_speed, min_speed))
 print ("Done!")

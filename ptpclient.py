@@ -169,7 +169,7 @@ while not eof_state:
     last_buffer = bit_buffer.pop()
     print (reduce(add, bit_buffer))
 
-    if verbose:
+    if verbose and not eof_state:
         step_duration = (time() - start_step)
         kbytes = max_index * bits / 8000
         speed = kbytes/step_duration
@@ -183,6 +183,6 @@ while not eof_state:
         start_step = time()
 
 print(last_buffer)
-print ("Done!", file=stderr)
 if verbose:
     print ("Max speed %.5fkB/s; Avg speed %.5fkB/s; Min speed %.5fkB/s"% (max_speed, avg_speed, min_speed), file=stderr)
+print ("Done!", file=stderr)
