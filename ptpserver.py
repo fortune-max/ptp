@@ -127,7 +127,7 @@ max_speed = avg_speed = avg_count = 0
 
 while True:
     if not missing_count:
-        if verbose and not EOF:
+        if not EOF:
             step_duration = (time() - start_step)
             kbytes = max_index * bits / 8000
             speed = kbytes/step_duration
@@ -174,7 +174,7 @@ while True:
     recv_socket, (recv_ip, recv_port) = ready_server.accept()
     recv_socket.close()
     missing_count = server_port - server_offset - 1
-    if missing_count:
+    if missing_count and verbose:
         print ("Received count missing=", missing_count)
     # Notify client that count received
     hit_port_tcp(0, poll_port)
@@ -195,6 +195,5 @@ while True:
             recv_socket.close()
             missing_indexes.append(server_port - server_offset - 1)
     #print ("Received indexes", missing_indexes)
-if verbose:
-    print ("Max speed %.5fkB/s; Avg speed %.5fkB/s; Min speed %.5fkB/s"% (max_speed, avg_speed, min_speed))
+print ("Max speed %.5fkB/s; Avg speed %.5fkB/s; Min speed %.5fkB/s"% (max_speed, avg_speed, min_speed))
 print ("Done!")
