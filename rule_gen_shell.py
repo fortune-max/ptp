@@ -29,14 +29,14 @@ if not ip:
 if server_mode:
   for port in range(server_offset + 1, server_offset + max_idx + 18 + 1):
     # bits 8, range(34001, 34267) [266]
-    tmplt = (port, ip, port, port)
+    tmplt = (port, ip, port)
     print (base_tcp % tmplt)
 
 elif client_mode:
   for port in range(client_offset + 1, client_offset + 2**bits-1):
     # bits 8, range(1025, 1279) [254]
-    tmplt = (port, ip, port, port)
+    tmplt = (port, ip, port)
     print( base_udp % tmplt)
   port = 65535
-  tmplt = (port, ip, port, port)
+  tmplt = (port, ip, port)
   print (base_tcp % tmplt)
