@@ -49,7 +49,7 @@ def resolve_ports(bit_seq, server_is_idx, idx):
 ap = argparse.ArgumentParser()
 ap.add_argument("-O","--server_offset",default=34000,type=int,help="Number of ports to step over before mapping offset+1, ..., to indexes. Default 34000 (in case running both server and client on same machine limit clashes)",)
 ap.add_argument("-o","--client_offset",default=1024,type=int,help="Number of ports to step over before mapping offset+1, ..., to bit sequences. Default 1024 (running non-root)",)
-ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
+ap.add_argument("-m","--max_index",type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-f", "--file", default="-", type=str, help="Input file to serve. Default stdin")
 ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
@@ -78,13 +78,14 @@ if args["client_offset"] > 65534 - 2 ** bits + 2:
     print ("Client Offset value exceeded, using ", 65534 - 2 ** bits + 2, file=stderr)
 client_offset = min(args["client_offset"], 65534 - 2 ** bits + 2)
 
-if args["max_index"] > 2 ** bits - 8:
+max_index = args["max_index"] or (2 ** bits - 8)
+if max_index > 2 ** bits - 8:
     print ("Max index value exceeded, using ", 2 ** bits - 8, file=stderr)
-elif args["max_index"] % 8:
+elif max_index % 8:
     print ("Max index must be divisible by 8, using ", int(args["max_index"] / 8) * 8, file=stderr)
-elif args["max_index"] == 0:
+elif max_index == 0:
     print ("Invalid Max index, using minimum value 8", file=stderr)
-max_index = max(min(int(args["max_index"] / 8) * 8, 2 ** bits - 8), 8)
+max_index = max(min(int(max_index / 8) * 8, 2 ** bits - 8), 8)
 
 if args["server_offset"] > 65535 - 19 - max_index:
     print ("Server Offset value exceeded, using ", 65535 - 19 - max_index, file=stderr)
