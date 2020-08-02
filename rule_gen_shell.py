@@ -12,8 +12,8 @@ ap.add_argument("-c", "--client_mode", action="store_true", help="Generate forwa
 
 args = vars(ap.parse_args())
 
-base_tcp = "socat TCP4-LISTEN:%d,fork TCP4:%s:%d,sp=%d,reuseaddr &"
-base_udp = "socat UDP4-LISTEN:%d,fork UDP4-SENDTO:%s:%d,sp=%d,reuseaddr &"
+base_tcp = "socat TCP4-LISTEN:%d,fork TCP4:%s:%d,reuseaddr &"
+base_udp = "socat UDP4-LISTEN:%d,fork UDP4-SENDTO:%s:%d,reuseaddr &"
 
 ip = args["ip"]
 bits = args["bits"]
