@@ -11,9 +11,8 @@ ap.add_argument("-s", "--server_mode", action="store_true", help="Generate forwa
 ap.add_argument("-c", "--client_mode", action="store_true", help="Generate forward-to-client scripts")
 
 args = vars(ap.parse_args())
-
-base_tcp = "socat TCP4-LISTEN:%d,fork TCP4:%s:%d,reuseaddr &"
-base_udp = "socat UDP4-LISTEN:%d,fork UDP4-SENDTO:%s:%d,reuseaddr &"
+base_tcp = 'socat TCP4-LISTEN:%d,fork,reuseaddr SYSTEM:"./socat_relay.sh TCP %s %d" &'
+base_udp = 'socat UDP4-LISTEN:%d,fork,reuseaddr SYSTEM:"./socat_relay.sh UDP %s %d" &'
 
 ip = args["ip"]
 bits = args["bits"]
