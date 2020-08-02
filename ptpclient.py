@@ -43,6 +43,7 @@ ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequ
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-t", "--timeout", default=2000,type=int,help="time to wait (ms) before writing off UDP missing packets and requesting again")
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
+ap.add_argument("-s","--server",default=None,type=str,help="IP address of server machine. Default is first connection received",)
 ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
 ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (summary)")
@@ -55,6 +56,7 @@ windows_mode = args["windows_mode"]
 poll_port = args["poll_port"]
 Verbose = args["Verbose"]
 verbose = args["verbose"] or Verbose
+server_ip = args["server"]
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -78,7 +80,6 @@ if args["server_offset"] > 65535 - 19 - max_index:
     print ("Server Offset value exceeded, using ", 65535 - 19 - max_index, file=stderr)
 server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 
-server_ip = None
 bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
 last_buffer = ""
@@ -131,14 +132,17 @@ while not eof_state:
                 readable = poller.poll(wait)
             if not connected:
                 connected = True
-                print ("Connection Established", file=stderr)
+                print ("Connection Established", readable, file=stderr)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server
                     ready_server = fd_to_socket[fd]
                 count += 1
                 client_port = ready_server.getsockname()[1]
-                recv_data, (server_ip, server_port) = ready_server.recvfrom(1)
+                recv_data, (recv_ip, server_port) = ready_server.recvfrom(1)
+                if not server_ip:
+                    server_ip = recv_ip
+                print(server_port, file=stderr)
                 index, bit_seq = handle_ports(client_port, server_port)
                 missing_indexes -= {index-1}
                 if isinstance(bit_seq, int):
@@ -150,15 +154,15 @@ while not eof_state:
                 else:
                     bit_buffer[index] = bit_seq
         # wait for all UDP data sent signal
-        recv_socket, (server_ip, recv_port) = wait_socket.accept()
+        recv_socket, (recv_ip, recv_port) = wait_socket.accept()
         recv_socket.close()
         # Send missing count (zero-indexed)
         missing_count = len(missing_indexes)
         if missing_count and Verbose:
-            print ("Received count missing=", missing_count, file=stderr)
+            print ("Sending count missing=", missing_count, file=stderr)
         hit_port_tcp(0, server_offset + missing_count + 1)
         # wait for ACK of no missing
-        recv_socket, (server_ip, recv_port) = wait_socket.accept()
+        recv_socket, (recv_ip, recv_port) = wait_socket.accept()
         recv_socket.close()
         # Send missing indexes (zero-indexed)
         for missing_index in missing_indexes:
