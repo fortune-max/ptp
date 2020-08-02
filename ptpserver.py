@@ -15,7 +15,7 @@ def hit_port_udp(server_port, client_port):
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((server_ip, server_port))
     # print ("Hitting port ", server_port, client_port, file=stderr)
-    server_socket.sendto(b"", (client, client_port))
+    server_socket.sendto(b"p", (client, client_port))
     server_socket.close()
 
 

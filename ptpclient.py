@@ -143,7 +143,6 @@ while not eof_state:
                 recv_data, (recv_ip, server_port) = ready_server.recvfrom(1)
                 if not server_ip:
                     server_ip = recv_ip
-                print(server_port, file=stderr)
                 index, bit_seq = handle_ports(client_port, server_port)
                 missing_indexes -= {index-1}
                 if isinstance(bit_seq, int):
