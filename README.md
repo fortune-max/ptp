@@ -48,15 +48,15 @@ Parameters common to both client and server must be the same for both when run (
 #### Running on same machine (testing, etc)  
 
 _Terminal 1 (acting as client and run first)_
-> ./ptpclient.py -v | ./ptptranslate.py > outfile
+> ./ptpclient.py | ./ptptranslate.py > outfile
 
 _Terminal 2 (acting as server and serves a file  to client)_  
-> ./ptpserver.py -f testfiles/hightail.conf -v  
+> ./ptpserver.py -f testfiles/hightail.conf  
 
 #### Different Server & Client machine  
 
 **Client-side**
-> ./ptpclient.py -v | ./ptptranslate.py > outfile
+> ./ptpclient.py | ./ptptranslate.py > outfile
 
 **Server-side**
-> ./ptpserver.py -f /path/to/file -c client_ip -v  
+> ./ptpserver.py -f /path/to/file -c client_ip  
