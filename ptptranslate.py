@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
 import argparse
 from sys import stdout, stdin
 from operator import add
-from functools import reduce
 
 ap = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter, description="", epilog=""
@@ -15,9 +14,10 @@ input_stream = args["input"]
 if input_stream == "-":
     raw_file = stdin
 else:
-    raw_file = open(input_stream, "r")
+    raw_file = open(input_stream, "rb")
 
 bit_array = raw_file.read().split()
+
 if bit_array:
     bits = reduce(add, bit_array)
     for idx in range(int(len(bits) / 8)):
