@@ -5,7 +5,7 @@ import select
 import argparse
 from sys import stdin, stderr
 from math import ceil
-from time import time
+from time import time, sleep
 from operator import add
 from functools import reduce
 
@@ -56,6 +56,7 @@ ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Window
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-c","--client",default="127.0.0.1",type=str,help="Client IP to serve file to. Default localhost",)
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
+ap.add_argument("-d","--delay",default=0.1,type=float,help="Delay in milliseconds between hitting ports to avoid congestion. Default 1ms",)
 ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (summary)")
 ap.add_argument("-V", "--Verbose", action="store_true", help="display helpful stats, (explicit)")
 args = vars(ap.parse_args())
@@ -64,6 +65,7 @@ client = args["client"]
 input_stream = args["file"]
 server_ip = args["ip"]
 poll_port = args["poll_port"]
+delay = args["delay"] / 1000
 windows_mode = args["windows_mode"]
 Verbose = args["Verbose"]
 verbose = args["verbose"] or Verbose
@@ -155,6 +157,7 @@ while True:
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         # Send Data UDP
         resolve_ports(to_send, True, idx)
+        sleep(delay)
     #print ("Sent data UDP")
     # Notify client that data sent
     hit_port_tcp(0, poll_port)

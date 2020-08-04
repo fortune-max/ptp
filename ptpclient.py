@@ -133,7 +133,7 @@ while not eof_state:
                 readable = poller.poll(wait)
             if not connected:
                 connected = True
-                print ("Connection Established", readable, file=stderr)
+                print ("Connection Established", file=stderr)
             for ready_server in readable:
                 if not windows_mode:
                     fd, flag = ready_server
