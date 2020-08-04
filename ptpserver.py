@@ -56,7 +56,7 @@ ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Window
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-c","--client",default="127.0.0.1",type=str,help="Client IP to serve file to. Default localhost",)
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
-ap.add_argument("-d","--delay",default=0.1,type=float,help="Delay in milliseconds between hitting ports to avoid congestion. Default 1ms",)
+ap.add_argument("-d","--delay",default=0,type=float,help="Delay in milliseconds between hitting ports to avoid congestion. Default 0ms",)
 ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (summary)")
 ap.add_argument("-V", "--Verbose", action="store_true", help="display helpful stats, (explicit)")
 args = vars(ap.parse_args())
