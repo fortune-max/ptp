@@ -46,6 +46,7 @@ ap.add_argument("-o","--client_offset",default=1024,type=int,help="Number of por
 ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequences to send before waiting for acknowledgment from client",)
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
+ap.add_argument("-s","--server",type=str,help="IP address of server machine",)
 ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
 ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (slows performance)")
@@ -55,6 +56,7 @@ client_ip = args["ip"]
 windows_mode = args["windows_mode"]
 poll_port = args["poll_port"]
 verbose = args["verbose"]
+server_ip = args["server"]
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -78,7 +80,6 @@ if args["server_offset"] > 65535 - 19 - max_index:
     print ("Server Offset value exceeded, using ", 65535 - 19 - max_index, file=stderr)
 server_offset = min(args["server_offset"], 65535 - 19 - max_index)
 
-server_ip = None
 bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
 start_step = 0
@@ -121,7 +122,9 @@ while not eof_state:
                 ready_server = fd_to_socket[fd]
             count += 1
             client_port = ready_server.getsockname()[1]
-            recv_socket, (server_ip, server_port) = ready_server.accept()
+            recv_socket, (recv_ip, server_port) = ready_server.accept()
+            if not server_ip:
+                server_ip = recv_ip
             recv_socket.close()
             index, bit_seq = handle_ports(client_port, server_port)
             if bit_seq.startswith("-"):
