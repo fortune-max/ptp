@@ -2,6 +2,8 @@
 
 import socket
 import argparse
+from multiprocessing import Process
+from doc import serv_doc
 from sys import stdin, stderr
 from math import ceil
 from operator import add
@@ -43,30 +45,7 @@ def resolve_ports(bit_seq, server_is_idx, idx):
 
 ap = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
-    description="""
-This utility sends files from server device (this machine) to a specified client device on which an instance of ptpclient is running.
-
-Useful when you wish to communicate with another device which you can hit it's ports but cannot write data to same port and/or vice versa.
-Could also double for making sure your communication with client device is indecipherable/uninterceptable.
-
-Each socket connection (of which there are several) is represented like this:
-
-Socket Server-Side (localhost, server_port) => Socket Client-Side (client_IP, client_port)
-
-For each socket connection, the server hits a listening ${client_port} on specified ${client_IP} with it's own socket running on ${server_port} sending a bit-sequence ${bits} characters long. The bit-sequence is inferred client-side from the value of ${client_port} hit, and the position of the bit-sequence in bit stream data is inferred from the value of ${server_port}.
-
-Values of server_port are selected using the legend, with ${server_offset}+1 mapped to first item and so on:
-index 1, index 2, index 3, ..., index ${max_index}, binary(0), binary(2^${bits}-1), EOF-0, EOF-1, ..., EOF-15
-
-Values of client_port are selected using the legend, with ${client_offset}+1 mapped to first item and so on:
-binary(1), binary(2), ..., binary(2^${bits}-2)           [binary sequences are zero-filled to length ${bits}]
-
-Some server ports represent something other than indexes:
-The EOF bits are sent at the end of the broadcast to know how many bits to right strip from received data. EOF-4 means strip off last 4 bits from sequence then terminate listening on client as all data has been received.
-The null bit is also sent from server-side as it cannot be squeezed into the client port when ${bits} value is 16.
-The last bit-sequence in bit-space is also sent from server side, as port ${poll_port} is reserved for polling server (to avoid clash when ${bits} is 16)
-
-Each time the server sends the next set of ${max_index} bit-sequences, it waits by listening on port ${poll_port} for the client to state it has received, processed and properly ordered all bit-sequences received, using the accompanying indexes inferred from ${server_port}. The next set of ${max_index} bit-sequences are then sent and the process repeated till completion. This is to prevent ambiguity in where to position bits and ensure the transfer runs as quickly as (possibly varying) network speeds allow.""",
+    description=serv_doc
 )
 
 ap.add_argument("-O","--server_offset",default=34000,type=int,help="Number of ports to step over before mapping offset+1, ..., to indexes. Default 34000 (in case running both server and client on same machine limit clashes)",)
@@ -77,12 +56,14 @@ ap.add_argument("-f", "--file", default="-", type=str, help="Input file to serve
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-c","--client",default="127.0.0.1",type=str,help="Client IP to serve file to. Default localhost",)
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
+ap.add_argument("-P","--procs",default=1,type=int,help="How many processes to spawn to speed up transfer. Default 1",)
 args = vars(ap.parse_args())
 
 client = args["client"]
 input_stream = args["file"]
 server_ip = args["ip"]
 poll_port = args["poll_port"]
+procs = args["procs"]
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -120,15 +101,25 @@ wait_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 wait_socket.bind((server_ip, poll_port))
 wait_socket.listen(128)
 
+
+def proc_fn(idxes, bit_seq):
+    for idx in idxes:
+        to_send = bit_seq[idx * bits : (idx + 1) * bits]
+        resolve_ports(to_send, True, idx)
+
+
 while True:
     chunks = bytes.read(chunksize)
     if not chunks:
         break
     bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
     segments = min(max_index, int(ceil(len(bit_seq) / bits)))
-    for idx in range(segments):
-        to_send = bit_seq[idx * bits : (idx + 1) * bits]
-        resolve_ports(to_send, True, idx)
+    for proc in range(procs):
+        idxes = range(proc,segments,procs)
+        Process(target=proc_fn, args=(idxes, bit_seq)).start()
+    # for idx in range(segments):
+    #     to_send = bit_seq[idx * bits : (idx + 1) * bits]
+    #     resolve_ports(to_send, True, idx)
     
     # Wait for client ACK if not finished
     if segments == max_index:
