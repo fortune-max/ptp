@@ -115,7 +115,7 @@ while True:
         break
     bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
     segments = min(max_index, int(ceil(len(bit_seq) / bits)))
-    if procs >= 1:
+    if procs == 1:
         for proc in range(procs):
             idxes = range(proc,segments,procs)
             Process(target=proc_fn, args=(idxes, bit_seq)).start()
