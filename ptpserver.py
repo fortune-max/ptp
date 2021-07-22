@@ -102,7 +102,8 @@ wait_socket.bind((server_ip, poll_port))
 wait_socket.listen(128)
 
 
-def proc_fn(idxes, bit_seq):
+def proc_fn(tup):
+    (idxes, bit_seq) = tup
     for idx in idxes:
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         resolve_ports(to_send, True, idx)
@@ -114,12 +115,14 @@ while True:
         break
     bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
     segments = min(max_index, int(ceil(len(bit_seq) / bits)))
-    for proc in range(procs):
-        idxes = range(proc,segments,procs)
-        Process(target=proc_fn, args=(idxes, bit_seq)).start()
-    # for idx in range(segments):
-    #     to_send = bit_seq[idx * bits : (idx + 1) * bits]
-    #     resolve_ports(to_send, True, idx)
+    if procs >= 1:
+        for proc in range(procs):
+            idxes = range(proc,segments,procs)
+            Process(target=proc_fn, args=(idxes, bit_seq)).start()
+    else:
+        for idx in range(segments):
+            to_send = bit_seq[idx * bits : (idx + 1) * bits]
+            resolve_ports(to_send, True, idx)
     
     # Wait for client ACK if not finished
     if segments == max_index:
