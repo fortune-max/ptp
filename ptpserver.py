@@ -2,11 +2,17 @@
 
 import socket
 import argparse
-from multiprocessing import Process, Queue
 from doc import serv_doc, bit_map
 from sys import stdin, stderr
 from math import ceil
-from operator import add
+
+# Fix for platforms without semaphores (Android)
+try:
+    from multiprocessing import synchronize, Process, Queue
+except ImportError:
+    from threading import Thread as Process
+    from queue import Queue
+
 
 def hitter(pqueue):
     while True:
