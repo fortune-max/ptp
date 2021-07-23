@@ -7,7 +7,6 @@ from doc import serv_doc, bit_map
 from sys import stdin, stderr
 from math import ceil
 from operator import add
-from functools import reduce
 
 
 def hit_port(server_port, client_port):
@@ -102,8 +101,7 @@ wait_socket.bind((server_ip, poll_port))
 wait_socket.listen(128)
 
 
-def proc_fn(tup):
-    (idxes, bit_seq) = tup
+def proc_fn(idxes, bit_seq):
     for idx in idxes:
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         resolve_ports(to_send, True, idx)
