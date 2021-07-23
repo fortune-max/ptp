@@ -6,12 +6,14 @@ from doc import serv_doc, bit_map
 from sys import stdin, stderr
 from math import ceil
 
-# Fix for platforms without semaphores (Android)
+# Hack for platforms without semaphores (Android)
 try:
     from multiprocessing import synchronize, Process, Queue
+    daemonize = False
 except ImportError:
     from threading import Thread as Process
     from queue import Queue
+    daemonize = True
 
 
 def hitter(pqueue):
@@ -124,8 +126,10 @@ def proc_fn(idxes, bit_seq):
 
 if procs > 1:
     pqueue = Queue()
-    for proc in range(procs):
-        Process(target=hitter, args=((pqueue),)).start()
+    for _ in range(procs):
+        proc = Process(target=hitter, args=((pqueue),))
+        proc.daemon = daemonize
+        proc.start()
 
 while True:
     chunks = bytes.read(chunksize)
