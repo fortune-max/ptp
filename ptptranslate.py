@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
+from doc import bit_map
 from operator import add
 from functools import reduce
 from sys import stdout, stdin
 
 ap = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter)
-ap.add_argument("-i", "--input", default="-", type=str, help="File to encode/decode. Defaults to stdin")
-ap.add_argument("-m", "--mode", default="decode", type=str, help="Convert file to bitsequence (encode) or from bitsequence (decode)")
+ap.add_argument("-f", "--file", default="-", type=str, help="File to encode/decode. Defaults to stdin")
+ap.add_argument("-m", "--mode", default="decode", type=str, help="Convert file to bitsequence (encode) or from bitsequence (decode). Default decode")
 ap.add_argument("-c", "--chunksize",  default=10000000, type=int, help="Num of bytes to translate at a time. Default 10000000 (10MB)")
 args = vars(ap.parse_args())
-mode, input_stream, chunksize  = args["mode"], args["input"], args["chunksize"]
+mode, input_stream, chunksize  = args["mode"], args["file"], args["chunksize"]
 
 if input_stream == "-":
     raw_file = stdin.buffer.raw
@@ -22,7 +23,7 @@ if mode == "encode":
         chunks = raw_file.read(chunksize)
         if not chunks:
             break
-        bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
+        bit_seq = "".join([bit_map[x] for x in chunks])
         stdout.write(bit_seq)
 
 else:
