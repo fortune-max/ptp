@@ -2,11 +2,18 @@
 
 import socket
 import argparse
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from doc import serv_doc, bit_map
 from sys import stdin, stderr
 from math import ceil
 from operator import add
+
+def hitter(pqueue):
+    while True:
+        server_port, client_port = pqueue.get()
+        if (server_port == 'DONE'):
+            break
+        hit_port(server_port, client_port)
 
 
 def hit_port(server_port, client_port):
@@ -39,7 +46,10 @@ def resolve_ports(bit_seq, server_is_idx, idx):
         client_port += 1
         server_port += max_index + eof_offset + 1
         print ("Sending EOF-%d" % (eof_offset - 1))
-    hit_port(server_port, client_port)
+    if procs == 1:
+        hit_port(server_port, client_port)
+    else:
+        pqueue.put((server_port, client_port))
 
 
 ap = argparse.ArgumentParser(
@@ -106,6 +116,9 @@ def proc_fn(idxes, bit_seq):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         resolve_ports(to_send, True, idx)
 
+pqueue = Queue()
+for proc in range(procs):
+    Process(target=hitter, args=((pqueue),)).start()
 
 while True:
     chunks = bytes.read(chunksize)
@@ -113,14 +126,9 @@ while True:
         break
     bit_seq = "".join([bit_map[x] for x in chunks])
     segments = min(max_index, int(ceil(len(bit_seq) / bits)))
-    if procs == 1:
-        for idx in range(segments):
-            to_send = bit_seq[idx * bits : (idx + 1) * bits]
-            resolve_ports(to_send, True, idx)
-    else:
-        for proc in range(procs):
-            idxes = range(proc,segments,procs)
-            Process(target=proc_fn, args=(idxes, bit_seq)).start()
+    for idx in range(segments):
+        to_send = bit_seq[idx * bits : (idx + 1) * bits]
+        resolve_ports(to_send, True, idx)
     # Wait for client ACK if not finished
     if segments == max_index:
         idx = -1  # Assert (idx + 2) % max_index is next index
@@ -136,4 +144,5 @@ if eof_offset == -1:
     server_port = server_offset + max_index + 3
     hit_port(server_port, client_port)
 wait_socket.close()
+pqueue.put(("DONE", None))
 print ("Done!")
