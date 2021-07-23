@@ -109,7 +109,7 @@ while not eof_state:
     if verbose:
         step_duration = (time() - start_step)
         kbytes = max_index * bits / 8000
-        print ("%.2fKb/s"%(kbytes/step_duration), file=stderr)
+        print ("%.2fkB/s"%(kbytes/step_duration), file=stderr)
         start_step = time()
     while count < max_index:
         if windows_mode:
