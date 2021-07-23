@@ -3,7 +3,7 @@
 import socket
 import argparse
 from multiprocessing import Process
-from doc import serv_doc
+from doc import serv_doc, bit_map
 from sys import stdin, stderr
 from math import ceil
 from operator import add
@@ -113,17 +113,16 @@ while True:
     chunks = bytes.read(chunksize)
     if not chunks:
         break
-    bit_seq = reduce(add, map(lambda x: bin(x)[2:].zfill(8), chunks))
+    bit_seq = "".join([bit_map[x] for x in chunks])
     segments = min(max_index, int(ceil(len(bit_seq) / bits)))
     if procs == 1:
-        for proc in range(procs):
-            idxes = range(proc,segments,procs)
-            Process(target=proc_fn, args=(idxes, bit_seq)).start()
-    else:
         for idx in range(segments):
             to_send = bit_seq[idx * bits : (idx + 1) * bits]
             resolve_ports(to_send, True, idx)
-    
+    else:
+        for proc in range(procs):
+            idxes = range(proc,segments,procs)
+            Process(target=proc_fn, args=(idxes, bit_seq)).start()
     # Wait for client ACK if not finished
     if segments == max_index:
         idx = -1  # Assert (idx + 2) % max_index is next index
