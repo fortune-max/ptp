@@ -116,9 +116,10 @@ def proc_fn(idxes, bit_seq):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         resolve_ports(to_send, True, idx)
 
-pqueue = Queue()
-for proc in range(procs):
-    Process(target=hitter, args=((pqueue),)).start()
+if procs > 1:
+    pqueue = Queue()
+    for proc in range(procs):
+        Process(target=hitter, args=((pqueue),)).start()
 
 while True:
     chunks = bytes.read(chunksize)
