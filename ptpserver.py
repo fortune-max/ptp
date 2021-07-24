@@ -9,11 +9,10 @@ from math import ceil
 # Hack for platforms without semaphores (Android)
 try:
     from multiprocessing import synchronize, Process, Queue
-    daemonize = False
+    android = False
 except ImportError:
-    from threading import Thread as Process
-    from queue import Queue
-    daemonize = True
+    from multiprocessing import Process, Pipe
+    android = True
 
 
 def hitter(pqueue):
@@ -54,10 +53,13 @@ def resolve_ports(bit_seq, server_is_idx, idx):
         client_port += 1
         server_port += max_index + eof_offset + 1
         print ("Sending EOF-%d" % (eof_offset - 1))
-    if procs == 1:
+    if procs == 0:
         hit_port(server_port, client_port)
     else:
-        pqueue.put((server_port, client_port))
+        if not android:
+            pqueue.put((server_port, client_port))
+        else: # round robin here
+            pipe_arr[idx%procs][0].send((server_port, client_port))
 
 
 ap = argparse.ArgumentParser(
@@ -73,7 +75,7 @@ ap.add_argument("-f", "--file", default="-", type=str, help="Input file to serve
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-c","--client",default="127.0.0.1",type=str,help="Client IP to serve file to. Default localhost",)
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
-ap.add_argument("-P","--procs",default=1,type=int,help="How many processes to spawn to speed up transfer. Default 1",)
+ap.add_argument("-P","--procs",default=0,type=int,help="How many extra processes to spawn to speed up transfer. Default 0",)
 args = vars(ap.parse_args())
 
 client = args["client"]
@@ -124,11 +126,19 @@ def proc_fn(idxes, bit_seq):
         to_send = bit_seq[idx * bits : (idx + 1) * bits]
         resolve_ports(to_send, True, idx)
 
-if procs > 1:
-    pqueue = Queue()
-    for _ in range(procs):
-        proc = Process(target=hitter, args=((pqueue),))
-        proc.daemon = daemonize
+if procs >= 1:
+    if not android:
+        pqueue = Queue()
+    else:
+        pipe_arr = []
+        for (pipe_1, pipe_2) in [Pipe() for _ in range(procs)]:
+            pipe_1.put, pipe_2.get = pipe_1.send, pipe_2.recv
+            pipe_arr.append((pipe_1, pipe_2))
+    for idx in range(procs):
+        if not android:
+            proc = Process(target=hitter, args=((pqueue),))
+        else:
+            proc = Process(target=hitter, args=((pipe_arr[idx][1]),))
         proc.start()
 
 while True:
@@ -155,5 +165,11 @@ if eof_offset == -1:
     server_port = server_offset + max_index + 3
     hit_port(server_port, client_port)
 wait_socket.close()
-pqueue.put(("DONE", None))
+if not android:
+    for _ in range(procs):
+        pqueue.put(("DONE", None))
+else:
+    for (pipe_1, pipe_2) in pipe_arr:
+        print ("sent")
+        pipe_1.send(("DONE", None))
 print ("Done!")
