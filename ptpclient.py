@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import socket
-import argparse
 import select
+import argparse
 from time import time
 from sys import stderr
-from operator import add
-from functools import reduce
+from multiprocessing import Process, Pipe
 
 
 def hit_port(client_port, server_port):
@@ -47,16 +46,16 @@ ap.add_argument("-m","--max_index",default=248,type=int,help="Number of bit-sequ
 ap.add_argument("-b","--bits",default=8,type=int,help="Bit space assigned to each port. Default 8 bits",)
 ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this machine. Default 0.0.0.0",)
 ap.add_argument("-s","--server",type=str,help="IP address of server machine",)
-ap.add_argument("-w", "--windows_mode", action="store_true", help="Run in Windows-compatible mode")
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
 ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (slows performance)")
+ap.add_argument("-P","--procs",default=1,type=int,help="How many extra processes to spawn to speed up transfer. Default 1",)
 args = vars(ap.parse_args())
 
 client_ip = args["ip"]
-windows_mode = args["windows_mode"]
 poll_port = args["poll_port"]
 verbose = args["verbose"]
 server_ip = args["server"]
+procs = args["procs"]
 
 if args["bits"] < 4:
     print ("Minimum bits is 4, using ", 4, file=stderr)
@@ -84,25 +83,45 @@ bit_buffer = [""] * max_index
 eof_state, eof_index, eof_offset = False, -1, -1
 start_step = 0
 
-if windows_mode:
-    port_array = []
-else:
+
+def set_up_ports(idx, procs=procs):
     poller = select.poll()
     fd_to_socket = {}
     READ_ONLY = select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR
 
-for port in range(client_offset + 1, client_offset + 2 ** bits - 1):
-    sock = socket.socket()
-    # print ("listening on", port, file=stderr)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((client_ip, port))
-    # max value in /proc/sys/net/core/somaxconn, increase if higher than 128
-    sock.listen(128)
-    if not windows_mode:
+    for port in range(client_offset + idx, client_offset + 2 ** bits - 1, procs):
+        sock = socket.socket()
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((client_ip, port))
+        # max value in /proc/sys/net/core/somaxconn, increase if higher than 128
+        sock.listen(128)
         poller.register(sock, READ_ONLY)
         fd_to_socket[sock.fileno()] = sock
-    else:
-        port_array.append(sock)
+
+    return poller, fd_to_socket
+
+
+def listener(idx, pipe):
+    poller, fd_to_socket = set_up_ports(idx)
+    while True:
+        readable = poller.poll()
+        for ready_server in readable:
+            fd, flag = ready_server
+            ready_server = fd_to_socket[fd]
+            client_port = ready_server.getsockname()[1]
+            recv_socket, (server_ip, server_port) = ready_server.accept()
+            recv_socket.close()
+            pipe.send((client_port, server_port, server_ip))
+
+
+if procs >= 1:
+    proc_arr, (pipe_1, pipe_2) = [], Pipe()
+    for idx in range(1, procs + 1):
+        proc = Process(target=listener, args=(idx, pipe_1))
+        proc_arr.append(proc)
+        proc.start()
+else:
+    poller, fd_to_socket = set_up_ports(1,1)
 
 while not eof_state:
     count = 0
@@ -112,20 +131,24 @@ while not eof_state:
         print ("%.2fkB/s"%(kbytes/step_duration), file=stderr)
         start_step = time()
     while count < max_index:
-        if windows_mode:
-            readable, _, _ = select.select(port_array, [], [])
-        else:
+        port_pairs = []
+        if procs and pipe_2.poll():
+            while pipe_2.poll():
+                count += 1
+                client_port, server_port, server_ip = pipe_2.recv()
+                port_pairs.append((client_port, server_port))
+        elif not procs:
             readable = poller.poll()
-        for ready_server in readable:
-            if not windows_mode:
+            for ready_server in readable:
+                count += 1
                 fd, flag = ready_server
                 ready_server = fd_to_socket[fd]
-            count += 1
-            client_port = ready_server.getsockname()[1]
-            recv_socket, (recv_ip, server_port) = ready_server.accept()
-            if not server_ip:
-                server_ip = recv_ip
-            recv_socket.close()
+                client_port = ready_server.getsockname()[1]
+                recv_socket, (server_ip, server_port) = ready_server.accept()
+                recv_socket.close()
+                port_pairs.append((client_port, server_port))
+
+        for client_port, server_port in port_pairs:
             index, bit_seq = handle_ports(client_port, server_port)
             if bit_seq.startswith("-"):
                 # Handle EOF
@@ -136,7 +159,11 @@ while not eof_state:
                 bit_buffer[index] = bit_seq
         if eof_state:
             bit_buffer[eof_index - 1] = bit_buffer[eof_index - 1][:eof_offset]
-    print (reduce(add, bit_buffer))
+
+    print ("".join(bit_buffer))
     if not eof_state:
         bit_buffer = [""] * max_index
         hit_port(0, poll_port)
+
+if procs:
+    [proc.terminate() for proc in proc_arr]

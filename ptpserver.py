@@ -136,9 +136,9 @@ if procs >= 1:
             pipe_arr.append((pipe_1, pipe_2))
     for idx in range(procs):
         if not android:
-            proc = Process(target=hitter, args=((pqueue),))
+            proc = Process(target=hitter, args=(pqueue,))
         else:
-            proc = Process(target=hitter, args=((pipe_arr[idx][1]),))
+            proc = Process(target=hitter, args=(pipe_arr[idx][1],))
         proc.start()
 
 while True:
