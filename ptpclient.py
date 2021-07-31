@@ -48,7 +48,7 @@ ap.add_argument("-i","--ip",default="0.0.0.0",type=str,help="IP address of this 
 ap.add_argument("-s","--server",type=str,help="IP address of server machine",)
 ap.add_argument("-p","--poll_port",default=65535,type=int,help="Port to hit server on to receive next set of bits. Default 65535",)
 ap.add_argument("-v", "--verbose", action="store_true", help="display helpful stats, (slows performance)")
-ap.add_argument("-P","--procs",default=1,type=int,help="How many extra processes to spawn to speed up transfer. Default 1",)
+ap.add_argument("-P","--procs",default=0,type=int,help="How many extra processes to spawn to speed up transfer. Default 0",)
 args = vars(ap.parse_args())
 
 client_ip = args["ip"]
