@@ -13,20 +13,20 @@ Each socket connection (of which there are several) is represented like this:
 
 **Socket Server-Side (localhost, server port) => Socket Client-Side (client IP, client port)**
 
-For each socket connection, the server hits a listening ${client port} on specified ${client IP} with it's own socket bound to ${server port} sending a bit-sequence ${bits} characters long. 
+For each socket connection, the server hits a listening {client port} on specified {client IP} with it's own socket bound to {server port} sending a bit-sequence {bits} characters long. 
 
-The bit-sequence is inferred client-side from the value of ${client port} hit, and the position of the bit sequence in bit stream data is inferred from the value of ${server port}.
+The bit-sequence is inferred client-side from the value of {client port} hit, and the position of the bit sequence in bit stream data is inferred from the value of {server port}.
 
 Legend
 ===
 
-Values of server port are selected using the legend, with ${server offset}+1 mapped to first item and so on:  
+Values of server port are selected using the legend, with {server offset}+1 mapped to first item and so on:  
 
-**index 1, index 2, index 3, ..., index ${max index}, binary(0), binary(2^{bits}-1), EOF-0, EOF-1, ..., EOF-15**
+**index 1, index 2, index 3, ..., index {max index}, binary(0), binary(2^{bits}-1), EOF-0, EOF-1, ..., EOF-15**
 
-Values of client port are selected using the legend, with ${client offset}+1 mapped to first item and so on:  
+Values of client port are selected using the legend, with {client offset}+1 mapped to first item and so on:  
 
-**binary(1), binary(2), ..., binary(2^{bits}-2)           [binary sequences are left-padded with zeroes to length ${bits}]**
+**binary(1), binary(2), ..., binary(2^{bits}-2)           [binary sequences are left-padded with zeroes to length {bits}]**
 
 Some server ports represent something other than indexes:  
 
@@ -36,7 +36,7 @@ EOF-4 means strip off last 4 bits from sequence then terminate listening on clie
 
 The null bit-sequence (all zeros) and last bit-sequence in bit-space (all ones) are also sent from server-side.
 
-Each time the server sends the next set of ${max index} bit-sequences, it waits for the client to state it has received, processed and properly ordered all bit-sequences received, using the accompanying indexes inferred from ${server port}. Any indexes missing are re-queried by client and resent by server till all ${max index} bit-sequences are accounted for client-side. The next set of ${max index} bit-sequences are then sent and the process repeated till completion. This is to prevent ambiguity in where to position bits and ensure the transfer runs as quickly as (possibly varying) network speeds allow.
+Each time the server sends the next set of {max index} bit-sequences, it waits for the client to state it has received, processed and properly ordered all bit-sequences received, using the accompanying indexes inferred from {server port}. Any indexes missing are re-queried by client and resent by server till all {max index} bit-sequences are accounted for client-side. The next set of {max index} bit-sequences are then sent and the process repeated till completion. This is to prevent ambiguity in where to position bits and ensure the transfer runs as quickly as (possibly varying) network speeds allow.
 
 
 Usage
