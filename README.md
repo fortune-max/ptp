@@ -22,11 +22,11 @@ Legend
 
 Values of server port are selected using the legend, with ${server offset}+1 mapped to first item and so on:  
 
-**index 1, index 2, index 3, ..., index ${max index}, binary(0), binary(2^${bits}-1), EOF-0, EOF-1, ..., EOF-15**
+**index 1, index 2, index 3, ..., index ${max index}, binary(0), binary(2^{bits}-1), EOF-0, EOF-1, ..., EOF-15**
 
 Values of client port are selected using the legend, with ${client offset}+1 mapped to first item and so on:  
 
-**binary(1), binary(2), ..., binary(2^${bits}-2)           [binary sequences are left-padded with zeroes to length ${bits}]**
+**binary(1), binary(2), ..., binary(2^{bits}-2)           [binary sequences are left-padded with zeroes to length ${bits}]**
 
 Some server ports represent something other than indexes:  
 
